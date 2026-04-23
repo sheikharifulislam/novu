@@ -1,8 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { AgentIntegrationRepository, AgentRepository, IntegrationRepository } from '@novu/dal';
-
-import { toAgentIntegrationResponse } from '../../mappers/agent-response.mapper';
 import type { AgentIntegrationResponseDto } from '../../dtos';
+import { toAgentIntegrationResponse } from '../../mappers/agent-response.mapper';
 import { AddAgentIntegrationCommand } from './add-agent-integration.command';
 
 @Injectable()
@@ -37,9 +36,7 @@ export class AddAgentIntegration {
     );
 
     if (!integration) {
-      throw new NotFoundException(
-        `Integration with identifier "${command.integrationIdentifier}" was not found.`
-      );
+      throw new NotFoundException(`Integration with identifier "${command.integrationIdentifier}" was not found.`);
     }
 
     const existingLink = await this.agentIntegrationRepository.findOne(
