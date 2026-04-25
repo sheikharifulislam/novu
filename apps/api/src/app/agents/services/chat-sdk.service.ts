@@ -307,7 +307,6 @@ export class ChatSdkService implements OnModuleDestroy {
       token: c.token ?? null,
       phoneNumberIdentification: c.phoneNumberIdentification ?? null,
       connectionAccessToken: connectionAccessToken ?? null,
-      replyDomain: c.replyDomain ?? null,
       outboundIntegrationId: c.outboundIntegrationId ?? null,
     });
   }
@@ -315,7 +314,16 @@ export class ChatSdkService implements OnModuleDestroy {
   private buildSendEmailCallback(
     config: ResolvedAgentConfig,
     outboundIntegrationId: string | undefined
-  ): (params: { to: string; subject: string; html: string; text?: string; inReplyTo?: string; references?: string; messageId?: string }) => Promise<{ messageId: string }> {
+  ): (params: {
+    from: string;
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+    inReplyTo?: string;
+    references?: string;
+    messageId?: string;
+  }) => Promise<{ messageId: string }> {
     return async (params) => {
       if (!outboundIntegrationId) {
         throw new BadRequestException(
@@ -351,22 +359,21 @@ export class ChatSdkService implements OnModuleDestroy {
 
       const decrypted = decryptCredentials(integration.credentials);
       const mailFactory = new MailFactory();
-      const handler = mailFactory.getHandler(
-        { ...integration, credentials: decrypted },
-        config.credentials.replyDomain
-      );
+      const handler = mailFactory.getHandler({ ...integration, credentials: decrypted }, params.from);
 
       const mailOptions: IEmailOptions = {
         to: [params.to],
         subject: params.subject,
         html: params.html,
         text: params.text,
-        from: config.credentials.replyDomain,
+        from: params.from,
         senderName: config.credentials.senderName || undefined,
         headers: {
           ...(params.messageId ? { 'Message-ID': wrapMsgId(params.messageId) } : {}),
           ...(params.inReplyTo ? { 'In-Reply-To': wrapMsgId(params.inReplyTo) } : {}),
-          ...(params.references ? { References: params.references.split(/\s+/).filter(Boolean).map(wrapMsgId).join(' ') } : {}),
+          ...(params.references
+            ? { References: params.references.split(/\s+/).filter(Boolean).map(wrapMsgId).join(' ') }
+            : {}),
         },
       };
 
@@ -475,20 +482,17 @@ export class ChatSdkService implements OnModuleDestroy {
         };
       }
       case AgentPlatformEnum.EMAIL: {
-        const { replyDomain, senderName, outboundIntegrationId } = credentials;
+        const { senderName, outboundIntegrationId } = credentials;
 
-        if (!replyDomain || !credentials.secretKey) {
-          throw new BadRequestException(
-            'Email agent integration requires replyDomain and secretKey credentials'
-          );
+        if (!credentials.secretKey) {
+          throw new BadRequestException('Email agent integration requires secretKey credentials');
         }
 
         const { createNovuEmailAdapter } = await esmImport('@novu/chat-adapter-email');
 
         return {
           email: createNovuEmailAdapter({
-            fromAddress: replyDomain,
-            fromName: senderName,
+            senderName,
             signingSecret: credentials.secretKey,
             sendEmail: this.buildSendEmailCallback(config, outboundIntegrationId),
           }),
