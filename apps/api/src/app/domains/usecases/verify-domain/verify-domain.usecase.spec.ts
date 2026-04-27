@@ -11,13 +11,13 @@ describe('VerifyDomain usecase', () => {
   const previousEnv = { ...process.env };
 
   const baseCommand = {
-    domainId: 'domain-id',
+    domain: 'inbound.example.com',
     environmentId: 'env-id',
     organizationId: 'org-id',
     userId: 'user-id',
   };
 
-  let domainRepositoryMock: { findOneByIdAndEnvironment: sinon.SinonStub; update: sinon.SinonStub };
+  let domainRepositoryMock: { findOne: sinon.SinonStub; update: sinon.SinonStub };
   let loggerMock: { setContext: sinon.SinonStub; debug: sinon.SinonStub; warn: sinon.SinonStub };
   let resolveMxStub: sinon.SinonStub;
 
@@ -41,7 +41,7 @@ describe('VerifyDomain usecase', () => {
     process.env.MAIL_SERVER_DOMAIN = 'mail.novu.co';
 
     domainRepositoryMock = {
-      findOneByIdAndEnvironment: stub(),
+      findOne: stub(),
       update: stub().resolves(),
     };
 
@@ -61,7 +61,7 @@ describe('VerifyDomain usecase', () => {
 
   it('marks domain as verified when DNS returns matching MX record', async () => {
     const domain = buildDomain();
-    domainRepositoryMock.findOneByIdAndEnvironment.resolves(domain);
+    domainRepositoryMock.findOne.resolves(domain);
     resolveMxStub.resolves([{ exchange: 'mail.novu.co', priority: 10 }]);
 
     const usecase = buildUsecase();
@@ -80,7 +80,7 @@ describe('VerifyDomain usecase', () => {
 
   it('keeps domain pending when DNS definitively returns no matching MX record (ENOTFOUND)', async () => {
     const domain = buildDomain();
-    domainRepositoryMock.findOneByIdAndEnvironment.resolves(domain);
+    domainRepositoryMock.findOne.resolves(domain);
     const notFoundError = Object.assign(new Error('ENOTFOUND'), { code: 'ENOTFOUND' });
     resolveMxStub.rejects(notFoundError);
 
@@ -94,7 +94,7 @@ describe('VerifyDomain usecase', () => {
 
   it('preserves verified state when DNS lookup fails with a transient error (ESERVFAIL)', async () => {
     const domain = buildDomain({ status: DomainStatusEnum.VERIFIED, mxRecordConfigured: true });
-    domainRepositoryMock.findOneByIdAndEnvironment.resolves(domain);
+    domainRepositoryMock.findOne.resolves(domain);
     const transientError = Object.assign(new Error('ESERVFAIL'), { code: 'ESERVFAIL' });
     resolveMxStub.rejects(transientError);
 
@@ -108,7 +108,7 @@ describe('VerifyDomain usecase', () => {
   });
 
   it('throws NotFoundException when domain does not exist', async () => {
-    domainRepositoryMock.findOneByIdAndEnvironment.resolves(null);
+    domainRepositoryMock.findOne.resolves(null);
 
     const usecase = buildUsecase();
 

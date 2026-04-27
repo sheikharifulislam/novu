@@ -17,6 +17,7 @@ import {
   GetSubscriberSchedule,
   GetSubscriberTemplatePreference,
   GetTopicSubscribersUseCase,
+  InboundDomainRouteDelivery,
   InMemoryProviderService,
   MsTeamsTokenService,
   NormalizeVariables,
@@ -39,6 +40,7 @@ import {
   CommunityUserRepository,
   ContextRepository,
   DomainRepository,
+  DomainRouteRepository,
   JobRepository,
   PreferencesRepository,
 } from '@novu/dal';
@@ -103,6 +105,7 @@ const enterpriseImports = (): Array<Type | DynamicModule | Promise<DynamicModule
 
 const REPOSITORIES = [
   DomainRepository,
+  DomainRouteRepository,
   JobRepository,
   CommunityOrganizationRepository,
   PreferencesRepository,
@@ -197,6 +200,7 @@ const USE_CASES = [
   TriggerMulticast,
   CompileInAppTemplate,
   InboundEmailParse,
+  InboundDomainRouteDelivery,
   ReplyToStrategy,
   DomainRouteStrategy,
   ExecuteBridgeJob,
