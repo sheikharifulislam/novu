@@ -219,7 +219,7 @@ export function SlackSetupGuide({
         description={
           <span>
             {
-              'Paste the App Credentials block from your Slack app — the App ID, Client ID, Client Secret and Signing Secret are filled automatically.'
+              'Paste the App Credentials block from your Slack app (You can also CMD+A and CMD+C the whole page!) — the App ID, Client ID, Client Secret and Signing Secret are filled automatically in the configure tab.'
             }
           </span>
         }
