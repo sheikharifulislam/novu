@@ -194,6 +194,7 @@ export function AgentSetupSteps({ agent, onBridgeConnected, hideAddProvider }: A
             rightContent={
               <ProviderDropdown
                 agentIdentifier={agent.identifier}
+                agentName={agent.name}
                 selectedIntegrationId={validatedSelectedId ?? defaultFromAgent?.integrationId}
                 linkedIntegrationIds={linkedIntegrationIds}
                 onSelect={(_providerId, integration) => {
@@ -219,7 +220,13 @@ export function AgentSetupSteps({ agent, onBridgeConnected, hideAddProvider }: A
       </motion.div>
 
       {hasConnectedIntegration && (
-        <AgentCodeSetupSection agent={agent} stepOffset={5} providerId={selectedProviderId} onBridgeConnected={onBridgeConnected} onAddProvider={hideAddProvider ? undefined : handleAddProvider} />
+        <AgentCodeSetupSection
+          agent={agent}
+          stepOffset={5}
+          providerId={selectedProviderId}
+          onBridgeConnected={onBridgeConnected}
+          onAddProvider={hideAddProvider ? undefined : handleAddProvider}
+        />
       )}
     </div>
   );
