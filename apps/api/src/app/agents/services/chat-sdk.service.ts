@@ -168,6 +168,7 @@ export class ChatSdkService implements OnModuleDestroy {
 
     const webRequest = toWebRequest(req);
     const webResponse = await handler(webRequest);
+
     await sendWebResponse(webResponse, res);
   }
 
