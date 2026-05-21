@@ -1219,9 +1219,15 @@ importers:
 
   apps/inbound-mail:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.996.0
+        version: 3.996.0
       '@aws-sdk/client-secrets-manager':
         specifier: ^3.1037.0
         version: 3.1042.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: ^3.996.0
+        version: 3.996.0
       '@novu/application-generic':
         specifier: workspace:*
         version: link:../../libs/application-generic

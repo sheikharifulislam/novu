@@ -65,9 +65,7 @@ describe('ssrf-url-validation', () => {
 
       const result = await validateUrlSsrf('https://ssrf-shared-address-test.invalid/latest/meta-data/');
 
-      expect(result).toBe(
-        'Requests to private or reserved IP addresses are not allowed (resolved: 100.100.100.200).'
-      );
+      expect(result).toBe('Requests to private or reserved IP addresses are not allowed (resolved: 100.100.100.200).');
     });
   });
 });

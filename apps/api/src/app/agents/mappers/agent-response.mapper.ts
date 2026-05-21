@@ -137,7 +137,6 @@ function resolveSharedInboxAddress(
   }
 }
 
-
 function deriveFallbackSlug(agent: SharedInboxAgentContext): string | undefined {
   const candidate = slugify(agent.identifier ?? agent.name ?? '')
     .slice(0, 32)

@@ -285,8 +285,7 @@ export class CredentialsDto implements ICredentials {
   @IsOptional()
   @IsString()
   @Matches(AGENT_EMAIL_SLUG_PREFIX_REGEX, {
-    message:
-      'emailSlugPrefix must be 1-32 lowercase letters, digits or dashes, and must not start or end with a dash',
+    message: 'emailSlugPrefix must be 1-32 lowercase letters, digits or dashes, and must not start or end with a dash',
   })
   emailSlugPrefix?: string;
 
