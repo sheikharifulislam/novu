@@ -8,6 +8,7 @@ import { DeleteAgent } from './delete-agent/delete-agent.usecase';
 import { DisableAgentMcpServer } from './disable-agent-mcp-server/disable-agent-mcp-server.usecase';
 import { EnableAgentMcpServer } from './enable-agent-mcp-server/enable-agent-mcp-server.usecase';
 import { FindOrCreateNovuEmail } from './find-or-create-novu-email/find-or-create-novu-email.usecase';
+import { GenerateManagedAgent } from './generate-managed-agent/generate-managed-agent.usecase';
 import { GenerateMcpOAuthUrl } from './generate-mcp-oauth-url/generate-mcp-oauth-url.usecase';
 import { GetAgent } from './get-agent/get-agent.usecase';
 import { GetAgentRuntimeConfig } from './get-agent-runtime-config/get-agent-runtime-config.usecase';
@@ -62,6 +63,7 @@ export const USE_CASES = [
   CleanupNovuEmail,
   ConfigureWhatsAppWebhook,
   FindOrCreateNovuEmail,
+  GenerateManagedAgent,
   IssueTelegramMobileLink,
   IssueTelegramSubscriberLink,
   LinkTelegramChatToSubscriber,
