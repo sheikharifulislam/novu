@@ -11,13 +11,18 @@ import { type ConnectorOption } from '@/components/agents/connectors/connector-o
 import {
   AGENT_TEMPLATES,
   type AgentTemplate,
+  buildManagedIntegrationCredentials,
+  buildVerifyCredentialsPayload,
+  buildVerifyFingerprint,
   type CreateAgentForm,
   type CreateAgentFormErrors,
+  hasCompleteManagedCredentials,
   hasFormErrors,
   type ManagedAgentRuntimeOverrides,
   type RuntimeType,
   type VerifyStatus,
   validateCreateAgentForm,
+  validateManagedCredentialFields,
 } from '@/components/agents/create-agent-fields';
 import { AGENT_TEMPLATES as DEFAULT_AGENT_TEMPLATES } from '@/components/connect/dashboard/agent-templates';
 import { ClaudeIcon } from '@/components/icons/claude';
@@ -26,6 +31,7 @@ import { showErrorToast, showSuccessToast } from '@/components/primitives/sonner
 import { useEnvironment } from '@/context/environment/hooks';
 import { useCreateAgentMutation } from '@/hooks/use-create-agent-mutation';
 import { useCreateIntegration } from '@/hooks/use-create-integration';
+import { useManagedClaudeCredentialsFlow } from '@/hooks/use-managed-claude-credentials-flow';
 import { useFetchIntegrations } from '@/hooks/use-fetch-integrations';
 import { GenerationCancelledError, useGenerateManagedAgent } from '@/hooks/use-generate-managed-agent';
 import { useTelemetry } from '@/hooks/use-telemetry';
@@ -118,8 +124,20 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
   const [name, setName] = useState(() => (isManagedEnabled ? '' : DEFAULT_TEMPLATE.name));
   const [identifier, setIdentifier] = useState(() => (isManagedEnabled ? '' : slugify(DEFAULT_TEMPLATE.name)));
   const [instructions, setInstructions] = useState(() => (isManagedEnabled ? '' : DEFAULT_TEMPLATE.instructions));
-  const [apiKey, setApiKey] = useState('');
-  const [externalWorkspaceId, setExternalWorkspaceId] = useState('');
+  const {
+    apiKey,
+    externalWorkspaceId,
+    region,
+    verifyStatus,
+    verifyMessage,
+    lastVerifiedKeyRef,
+    setApiKey,
+    setExternalWorkspaceId,
+    setRegion,
+    setVerifyStatus,
+    setVerifyMessage,
+    resetCredentials,
+  } = useManagedClaudeCredentialsFlow();
   const [externalAgentId, setExternalAgentId] = useState('');
   const [externalEnvironmentId, setExternalEnvironmentId] = useState('');
   const [isIdentifierTouched, setIsIdentifierTouched] = useState(false);
@@ -129,11 +147,7 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
   const [credentialsPanelVisible, setCredentialsPanelVisible] = useState(false);
   const [credentialsPanelExpanded, setCredentialsPanelExpanded] = useState(true);
   const [integrationName, setIntegrationName] = useState('');
-  const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>('idle');
-  const [verifyMessage, setVerifyMessage] = useState<string | undefined>(undefined);
   const [showSavedBadge, setShowSavedBadge] = useState(false);
-  // Tracks the last apiKey we sent for verification so we can drop stale responses.
-  const lastVerifiedKeyRef = useRef<string | null>(null);
   const savedBadgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Holds the integration id from "Save integration" until it appears in the fetched list, so the
   // auto-select effect does not overwrite it or reopen the credentials section during refetch.
@@ -163,7 +177,7 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
   const matchingAnthropicIntegrations = useMemo(() => {
     if (!selectedConnector?.providerId) return [];
 
-    return getClaudeManagedAgentIntegrations(integrations);
+    return getClaudeManagedAgentIntegrations(integrations, selectedConnector?.providerId);
   }, [integrations, selectedConnector?.providerId]);
 
   useEffect(() => {
@@ -267,11 +281,9 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
     if (!next?.providerId) {
       setSelectedIntegrationId(undefined);
       setCredentialsPanelVisible(false);
-      setApiKey('');
-      setVerifyStatus('idle');
-      setVerifyMessage(undefined);
+      resetCredentials();
     }
-  }, []);
+  }, [resetCredentials]);
 
   const handlePromptChange = useCallback((next: string) => {
     setPrompt(next);
@@ -343,14 +355,15 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
     }
   };
 
-  const handleSelectIntegration = useCallback((integration: IIntegration) => {
-    setSelectedIntegrationId(integration._id);
-    setCredentialsPanelVisible(false);
-    setApiKey('');
-    setVerifyStatus('idle');
-    setVerifyMessage(undefined);
-    setErrors((prev) => ({ ...prev, apiKey: undefined, integrationName: undefined }));
-  }, []);
+  const handleSelectIntegration = useCallback(
+    (integration: IIntegration) => {
+      setSelectedIntegrationId(integration._id);
+      setCredentialsPanelVisible(false);
+      resetCredentials();
+      setErrors((prev) => ({ ...prev, apiKey: undefined, integrationName: undefined }));
+    },
+    [resetCredentials]
+  );
 
   const handleRequestSetupCredentials = useCallback(
     (option: ConnectorOption) => {
@@ -362,79 +375,82 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
       lastVerifiedKeyRef.current = null;
 
       if (option.providerLabel && !integrationName.trim()) {
-        const nextIndex = getClaudeManagedAgentIntegrations(integrations).length + 1;
+        const nextIndex = getClaudeManagedAgentIntegrations(integrations, option.providerId).length + 1;
         setIntegrationName(`${option.providerLabel} ${nextIndex}`);
       }
     },
     [integrations, integrationName]
   );
 
-  const handleApiKeyChange = useCallback((next: string) => {
-    setApiKey(next);
-    setVerifyStatus('idle');
-    setVerifyMessage(undefined);
-    setErrors((prev) => ({ ...prev, apiKey: undefined }));
-  }, []);
+  const handleApiKeyChange = useCallback(
+    (next: string) => {
+      setApiKey(next);
+      setErrors((prev) => ({ ...prev, apiKey: undefined }));
+    },
+    [setApiKey]
+  );
 
-  const handleExternalWorkspaceIdChange = useCallback((next: string) => {
-    setExternalWorkspaceId(next);
-    setVerifyStatus('idle');
-    setVerifyMessage(undefined);
-    lastVerifiedKeyRef.current = null;
-  }, []);
+  const handleExternalWorkspaceIdChange = useCallback(
+    (next: string) => {
+      setExternalWorkspaceId(next);
+      setErrors((prev) => ({ ...prev, externalWorkspaceId: undefined }));
+    },
+    [setExternalWorkspaceId]
+  );
 
-  const handleVerify = useCallback(
-    (keyToVerify: string) => {
+  const handleRegionChange = useCallback(
+    (next: string) => {
+      setRegion(next);
+      setErrors((prev) => ({ ...prev, region: undefined }));
+    },
+    [setRegion]
+  );
+
+  const handleVerify = useCallback(() => {
       if (!selectedConnector?.providerId) return;
       if (verifyMutation.isPending) return;
-      if (lastVerifiedKeyRef.current === keyToVerify && verifyStatus === 'valid') return;
 
-      lastVerifiedKeyRef.current = keyToVerify;
+      const fields = { apiKey, region, externalWorkspaceId };
+      const verifyKey = buildVerifyFingerprint(selectedConnector.providerId, fields);
+
+      if (lastVerifiedKeyRef.current === verifyKey && verifyStatus === 'valid') return;
+
+      lastVerifiedKeyRef.current = verifyKey;
       setVerifyStatus('verifying');
       setVerifyMessage(undefined);
 
-      verifyMutation.mutate(
-        {
-          providerId: selectedConnector.providerId,
-          apiKey: keyToVerify,
-          externalWorkspaceId: externalWorkspaceId || undefined,
-        },
-        {
+      verifyMutation.mutate(buildVerifyCredentialsPayload(selectedConnector.providerId, fields), {
           onSuccess: () => {
-            if (lastVerifiedKeyRef.current !== keyToVerify) return;
+            if (lastVerifiedKeyRef.current !== verifyKey) return;
             setVerifyStatus('valid');
             setVerifyMessage(undefined);
             setErrors((prev) => ({ ...prev, apiKey: undefined }));
           },
           onError: (err) => {
-            if (lastVerifiedKeyRef.current !== keyToVerify) return;
+            if (lastVerifiedKeyRef.current !== verifyKey) return;
             setVerifyStatus('invalid');
             setVerifyMessage(err instanceof Error ? err.message : 'Invalid');
           },
         }
       );
     },
-    [selectedConnector?.providerId, externalWorkspaceId, verifyMutation, verifyStatus]
+    [selectedConnector?.providerId, apiKey, externalWorkspaceId, region, verifyMutation, verifyStatus]
   );
 
   const handleSaveIntegration = useCallback(async () => {
     if (!selectedConnector?.providerId) return;
 
-    const trimmedApiKey = apiKey.trim();
     const trimmedName = integrationName.trim();
-    const trimmedWorkspaceId = externalWorkspaceId.trim();
+    const fields = { apiKey, region, externalWorkspaceId };
 
-    if (!trimmedApiKey || !trimmedName) return;
+    if (!trimmedName || !hasCompleteManagedCredentials(selectedConnector.providerId, fields)) return;
 
     try {
       const { data: integration } = await createIntegration({
         active: true,
         kind: IntegrationKindEnum.AGENT,
         providerId: selectedConnector.providerId,
-        credentials: {
-          apiKey: trimmedApiKey,
-          ...(trimmedWorkspaceId ? { externalWorkspaceId: trimmedWorkspaceId } : {}),
-        },
+        credentials: buildManagedIntegrationCredentials(selectedConnector.providerId, fields),
         name: trimmedName,
       });
 
@@ -452,11 +468,7 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
       setCredentialsPanelVisible(true);
       setCredentialsPanelExpanded(false);
       setSelectedIntegrationId(integration._id);
-      setApiKey('');
-      setExternalWorkspaceId('');
-      setVerifyStatus('idle');
-      setVerifyMessage(undefined);
-      lastVerifiedKeyRef.current = null;
+      resetCredentials();
       setShowSavedBadge(true);
       if (savedBadgeTimerRef.current) clearTimeout(savedBadgeTimerRef.current);
       savedBadgeTimerRef.current = setTimeout(() => setShowSavedBadge(false), 2500);
@@ -470,9 +482,11 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
     apiKey,
     integrationName,
     externalWorkspaceId,
+    region,
     createIntegration,
     currentEnvironment?._id,
     queryClient,
+    resetCredentials,
   ]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -494,13 +508,19 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
         return;
       }
 
-      // Anthropic API key is only required when we provision the agent on Claude's managed
-      // runtime. The Custom Scaffold flow generates name/identifier/systemPrompt only and the
-      // user runs the agent on their own runtime, so no provider credentials are needed.
-      if (isClaudeSelected && !selectedIntegrationId && !apiKey.trim()) {
-        setErrors((prev) => ({ ...prev, apiKey: 'Anthropic API key is required.' }));
+      if (isClaudeSelected && !selectedIntegrationId && selectedConnector?.providerId) {
+        const credentialErrors = validateManagedCredentialFields({
+          providerId: selectedConnector.providerId,
+          apiKey,
+          region,
+          externalWorkspaceId,
+        });
 
-        return;
+        if (credentialErrors.apiKey || credentialErrors.region || credentialErrors.externalWorkspaceId) {
+          setErrors((prev) => ({ ...prev, ...credentialErrors }));
+
+          return;
+        }
       }
 
       setIsPromptSubmitInFlight(true);
@@ -550,9 +570,11 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
       apiKey,
       runtime,
       isExistingMode,
+      providerId: selectedConnector?.providerId,
       externalAgentId,
       externalEnvironmentId,
       externalWorkspaceId,
+      region,
       integrationId: selectedIntegrationId,
       integrationName,
     };
@@ -588,6 +610,7 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
       externalAgentId,
       externalEnvironmentId,
       externalWorkspaceId,
+      region: region.trim() || undefined,
       selectedIntegrationId,
       integrationName,
     };
@@ -600,9 +623,11 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
         apiKey: apiKey.trim(),
         runtime,
         isExistingMode,
+        providerId: selectedConnector?.providerId,
         externalAgentId: externalAgentId.trim(),
         externalEnvironmentId: externalEnvironmentId.trim(),
         externalWorkspaceId: externalWorkspaceId.trim() || undefined,
+        region: region.trim() || undefined,
         integrationId: selectedIntegrationId,
         integrationName: integrationName.trim() || undefined,
         managedOverrides,
@@ -649,6 +674,7 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
         isClaudeSelected={isClaudeSelected}
         apiKey={apiKey}
         externalWorkspaceId={externalWorkspaceId}
+        region={region}
         templateSelection={templateSelection}
         isExistingMode={isExistingMode}
         isScratchMode={isScratchMode}
@@ -698,6 +724,7 @@ export function ConnectAgentStep({ onAgentCreated, onRuntimeChange, isManagedEna
         onTemplateChange={handleTemplateChange}
         onApiKeyChange={handleApiKeyChange}
         onExternalWorkspaceIdChange={handleExternalWorkspaceIdChange}
+        onRegionChange={handleRegionChange}
         onNameChange={(next) => {
           setName(next);
           setErrors((prev) => ({ ...prev, name: undefined }));

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { AGENTS_LIST_QUERY_KEY, type AgentResponse, type CreateAgentBody, createAgent } from '@/api/agents';
 import { resolveClaudeManagedProviderId } from '@/components/agents/connectors/claude-managed-integrations';
+import { buildManagedIntegrationCredentials } from '@/components/agents/create-agent-fields';
 import type { CreateAgentForm } from '@/components/agents/create-agent-fields';
 import { requireEnvironment, useEnvironment } from '@/context/environment/hooks';
 import { QueryKeys } from '@/utils/query-keys';
@@ -45,6 +46,8 @@ export function useCreateAgentMutation() {
         externalAgentId,
         externalEnvironmentId,
         externalWorkspaceId,
+        region,
+        providerId: formProviderId,
         runtime,
         isExistingMode,
         integrationId: providedIntegrationId,
@@ -80,7 +83,7 @@ export function useCreateAgentMutation() {
           const environment = requireEnvironment(currentEnvironment, 'No environment selected');
 
           let integrationId: string;
-          let managedProviderId = AgentRuntimeProviderIdEnum.Anthropic;
+          let managedProviderId = formProviderId ?? AgentRuntimeProviderIdEnum.Anthropic;
           // Tracks whether THIS submission provisioned the integration, so we only roll back our own.
           let createdIntegrationInThisSubmit = false;
 
@@ -97,10 +100,12 @@ export function useCreateAgentMutation() {
               const { data: integration } = await createIntegration({
                 active: true,
                 kind: IntegrationKindEnum.AGENT,
-                providerId: AgentRuntimeProviderIdEnum.Anthropic,
-                // `externalWorkspaceId` is only sent when the user pasted a non-default workspace id —
-                // omitting it lets the backend fall back to the `default` workspace.
-                credentials: { apiKey, ...(externalWorkspaceId ? { externalWorkspaceId } : {}) },
+                providerId: managedProviderId,
+                credentials: buildManagedIntegrationCredentials(managedProviderId, {
+                  apiKey,
+                  region,
+                  externalWorkspaceId,
+                }),
                 name: integrationName?.trim() || name,
               });
 

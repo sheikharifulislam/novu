@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { type IAgentRuntimeProvider, PinoLogger, resolveAgentRuntime } from '@novu/application-generic';
+import {
+  type IAgentRuntimeProvider,
+  PinoLogger,
+  resolveAgentRuntime,
+  type ResolvedAwsAnthropicCredentials,
+  toThalamusAwsAnthropicCredentials,
+} from '@novu/application-generic';
 import { type AgentEntity, AgentRepository, IntegrationRepository } from '@novu/dal';
 import { AgentRuntimeProviderIdEnum } from '@novu/shared';
 import { cloudflare, thalamus, type WebhookProvider } from '@novu/thalamus';
@@ -55,21 +61,25 @@ export class ManagedAgentProviderFactory {
     const resolved = resolveAgentRuntime(integration.providerId, integration.credentials);
 
     if (!resolved) {
-      throw new Error('Integration has no API key configured');
+      throw new Error('Integration credentials are incomplete or invalid');
     }
 
-    const { apiKey, credentials: creds, provider: runtimeProvider } = resolved;
+    const { credentials: creds, provider: runtimeProvider, awsCredentials, apiKey } = resolved;
+    const providerId = integration.providerId as AgentRuntimeProviderIdEnum;
 
     if (!creds.externalEnvironmentId) {
       throw new Error('Integration has no external environment id');
     }
 
-    const provider = this.createProvider(integration.providerId as AgentRuntimeProviderIdEnum, {
-      apiKey,
-      agentId: agent.managedRuntime.externalAgentId,
-      environmentId: creds.externalEnvironmentId as string,
-    });
-    const runtime: ResolvedRuntime = { provider, runtimeProvider };
+    const externalEnvironmentId = creds.externalEnvironmentId as string;
+    const agentId = agent.managedRuntime.externalAgentId;
+
+    const webhookProvider =
+      awsCredentials != null
+        ? this.createAwsProvider({ awsCredentials, agentId, environmentId: externalEnvironmentId })
+        : this.createCloudProvider(providerId, { apiKey, agentId, environmentId: externalEnvironmentId });
+
+    const runtime: ResolvedRuntime = { provider: webhookProvider, runtimeProvider };
     this.providers.set(key, runtime);
 
     return runtime;
@@ -104,10 +114,40 @@ export class ManagedAgentProviderFactory {
     }
   }
 
-  private createProvider(
+  private createCloudProvider(
     providerId: AgentRuntimeProviderIdEnum,
     config: { apiKey: string; agentId: string; environmentId: string }
   ): WebhookProvider {
+    const durable = this.buildDurableBackend();
+
+    switch (providerId) {
+      case AgentRuntimeProviderIdEnum.Anthropic:
+      case AgentRuntimeProviderIdEnum.NovuAnthropic:
+        return thalamus.anthropic({
+          ...config,
+          durable,
+        });
+      default:
+        throw new Error(`Unsupported agent runtime provider: ${providerId}`);
+    }
+  }
+
+  private createAwsProvider(config: {
+    awsCredentials: ResolvedAwsAnthropicCredentials;
+    agentId: string;
+    environmentId: string;
+  }): WebhookProvider {
+    const durable = this.buildDurableBackend();
+
+    return thalamus.anthropic({
+      agentId: config.agentId,
+      environmentId: config.environmentId,
+      durable,
+      ...toThalamusAwsAnthropicCredentials(config.awsCredentials),
+    });
+  }
+
+  private buildDurableBackend() {
     const cfUrl = process.env.THALAMUS_CF_URL;
     if (!cfUrl) {
       throw new Error('THALAMUS_CF_URL is required for managed agents');
@@ -123,22 +163,13 @@ export class ManagedAgentProviderFactory {
       throw new Error('AGENT_API_HOSTNAME or API_ROOT_URL is required for managed agents');
     }
 
-    switch (providerId) {
-      case AgentRuntimeProviderIdEnum.Anthropic:
-      case AgentRuntimeProviderIdEnum.NovuAnthropic:
-        return thalamus.anthropic({
-          ...config,
-          durable: cloudflare({
-            url: cfUrl,
-            apiKey: process.env.THALAMUS_CF_API_KEY,
-            webhook: {
-              url: `${webhookBaseUrl}/v1/agents/events`,
-              secret: webhookSecret,
-            },
-          }),
-        });
-      default:
-        throw new Error(`Unsupported agent runtime provider: ${providerId}`);
-    }
+    return cloudflare({
+      url: cfUrl,
+      apiKey: process.env.THALAMUS_CF_API_KEY,
+      webhook: {
+        url: `${webhookBaseUrl}/v1/agents/events`,
+        secret: webhookSecret,
+      },
+    });
   }
 }

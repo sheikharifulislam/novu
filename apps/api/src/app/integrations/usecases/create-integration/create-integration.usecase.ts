@@ -7,8 +7,8 @@ import {
   areNovuSmsCredentialsSet,
   decryptCredentials,
   encryptCredentials,
-  getAgentRuntimeProvider,
   PinoLogger,
+  resolveAgentRuntime,
 } from '@novu/application-generic';
 import {
   DalException,
@@ -246,17 +246,19 @@ export class CreateIntegration {
     integrationName: string,
     command: CreateIntegrationCommand
   ): Promise<void> {
-    const decrypted = decryptCredentials(encryptCredentials(command.credentials ?? {}));
-    const apiKey = decrypted.apiKey as string | undefined;
+    const providerId = command.providerId as AgentRuntimeProviderIdEnum;
+    const resolved = resolveAgentRuntime(providerId, command.credentials ?? {});
 
-    if (!apiKey) {
-      return;
+    if (!resolved) {
+      throw new BadRequestException(
+        `Integration "${integrationId}" has incomplete runtime credentials. Complete setup before provisioning.`
+      );
     }
 
-    const providerId = command.providerId as AgentRuntimeProviderIdEnum;
-    const provider = getAgentRuntimeProvider(providerId, apiKey);
+    const provider = resolved.provider;
 
     try {
+      await provider.validateCredentials(resolved.validateCredentialsInput);
       const result = await provider.provisionIntegration({ integrationName });
 
       const updatedCredentials = encryptCredentials({
