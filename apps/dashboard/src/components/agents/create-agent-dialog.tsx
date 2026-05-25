@@ -805,11 +805,13 @@ export function CreateAgentDialog({
                   )}
                 </div>
 
-                <AgentSuggestionPills
-                  suggestions={AGENT_TEMPLATES}
-                  onSelect={handleSelectAiSuggestion}
-                  disabled={isSubmitBusy}
-                />
+                {generationMode === 'prompt' && (
+                  <AgentSuggestionPills
+                    suggestions={AGENT_TEMPLATES}
+                    onSelect={handleSelectAiSuggestion}
+                    disabled={isSubmitBusy}
+                  />
+                )}
 
                 <AnimatePresence initial={false}>
                   {isSubmitBusy && generationMode === 'prompt' && (
