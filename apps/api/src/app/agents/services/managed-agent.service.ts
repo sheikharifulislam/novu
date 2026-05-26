@@ -245,8 +245,6 @@ export class ManagedAgentService implements OnModuleInit {
         content: entry.content,
       }));
 
-    messages.push({ role: MessageRole.USER, content: context.message?.text ?? '' });
-
     return messages;
   }
 
