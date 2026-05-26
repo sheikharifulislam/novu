@@ -3,6 +3,7 @@
 </a>
 
 <br/>
+<br/>
 <p align="center">
   <a href="https://www.producthunt.com/products/novu" target="_blank" rel="noopener noreferrer"
 >
