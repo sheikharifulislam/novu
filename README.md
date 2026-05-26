@@ -198,3 +198,5 @@ Thanks a lot for spending your time helping Novu grow. Keep rocking 🥂
 <a href="https://novu.co/contributors?utm_source=github" target="_blank" rel="noopener noreferrer">
   <img src="https://contributors-img.web.app/image?repo=novuhq/novu" alt="Contributors"/>
 </a>
+
+The beatiful header animation was contributed by [LottieFiles](https://lottiefiles.com/) ❤️
