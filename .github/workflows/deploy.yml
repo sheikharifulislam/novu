@@ -306,7 +306,7 @@ jobs:
 
       - name: Whitelist Runner IP
         id: whitelist
-        uses: novuhq/clickhouse-cloud-whitelist-ip-action@7594062e821f1f28af7673bf82e4df9ca2e78636 # v1.0.0
+        uses: novuhq/clickhouse-cloud-whitelist-ip-action@32ff9cd48465bee922112d01a6276195a23556e6 # v1.1.0
         with:
           clickhouse-org-id: ${{ secrets.CLICKHOUSE_ORG_ID }}
           clickhouse-service-id: ${{ secrets.CLICKHOUSE_SERVICE_ID }}
@@ -587,7 +587,7 @@ jobs:
         if: |
           github.event.inputs.environment == 'staging' ||
           github.event.inputs.environment == 'staging-sg'
-        uses: linear/linear-release-action@0353b5fa8c00326913966f00557d68f8f30b8b6b  # pinned v0 ref
+        uses: linear/linear-release-action@0353b5fa8c00326913966f00557d68f8f30b8b6b # pinned v0 ref
         with:
           access_key: ${{ secrets.LINEAR_ACCESS_KEY_CLOUD_STAGING }}
           name: ${{ steps.release_meta.outputs.name }}
@@ -595,7 +595,7 @@ jobs:
 
       - name: Sync production release to Linear
         if: contains(github.event.inputs.environment, 'production')
-        uses: linear/linear-release-action@0353b5fa8c00326913966f00557d68f8f30b8b6b  # pinned v0 ref
+        uses: linear/linear-release-action@0353b5fa8c00326913966f00557d68f8f30b8b6b # pinned v0 ref
         with:
           access_key: ${{ secrets.LINEAR_ACCESS_KEY_CLOUD_PROD }}
           name: ${{ steps.release_meta.outputs.name }}
