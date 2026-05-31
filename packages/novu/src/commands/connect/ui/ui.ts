@@ -3,13 +3,9 @@ import type { AgentRuntimeChoice, AgentSummary, ChannelChoice } from '../types';
 
 export type PickResult = { action: 'new' } | { action: 'use'; agent: AgentSummary };
 
-export type GeneratedAgentPreviewResult =
-  | { action: 'confirm'; spec: GeneratedAgentSpec }
-  | { action: 'refine' };
+export type GeneratedAgentPreviewResult = { action: 'confirm'; spec: GeneratedAgentSpec } | { action: 'refine' };
 
-export type PickAgentIntegrationResult =
-  | { kind: 'existing'; integrationId: string }
-  | { kind: 'new' };
+export type PickAgentIntegrationResult = { kind: 'existing'; integrationId: string } | { kind: 'new' };
 
 export interface ConnectUI {
   // Welcome screen

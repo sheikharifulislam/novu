@@ -22,9 +22,9 @@ import { useAuth } from '@/context/auth/hooks';
 import { useEnvironment, useFetchEnvironments } from '@/context/environment/hooks';
 import { useAgentRoutes } from '@/hooks/use-agent-routes';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
+import { useOnboardingProvisioningActive, useOnboardingProvisioningDismiss } from '@/hooks/use-onboarding-provisioning';
 import { useTelemetry } from '@/hooks/use-telemetry';
 import { APP_IDS, isAbsoluteUrl } from '@/utils/apps';
-import { useOnboardingProvisioningActive, useOnboardingProvisioningDismiss } from '@/hooks/use-onboarding-provisioning';
 import {
   getPostOnboardingRoute,
   resolveOnboardingAppId,
@@ -267,7 +267,9 @@ export function AgentsSetupPage() {
 
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <PageMeta title={isConnectHost ? 'Build and distribute agents' : "Let's connect your agent to where you work"} />
+        <PageMeta
+          title={isConnectHost ? 'Build and distribute agents' : "Let's connect your agent to where you work"}
+        />
         <OnboardingLoader variant={isConnectHost ? 'connect' : 'platform'} />
       </div>
     );

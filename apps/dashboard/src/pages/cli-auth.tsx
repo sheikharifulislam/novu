@@ -1,12 +1,12 @@
-import { useAuth as useClerkAuth, useClerk, useUser } from '@clerk/react';
+import { useClerk, useAuth as useClerkAuth, useUser } from '@clerk/react';
 import { FeatureFlagsKeysEnum, PermissionsEnum } from '@novu/shared';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RiCheckLine, RiCommandLine, RiLockLine, RiArrowRightSLine } from 'react-icons/ri';
+import { RiArrowRightSLine, RiCheckLine, RiCommandLine, RiLockLine } from 'react-icons/ri';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { approveCliDeviceSession } from '@/api/cli-auth';
-import { AuthLayout } from '@/components/auth-layout';
 import { ConnectBrandLogo } from '@/components/auth/connect-brand-logo';
+import { AuthLayout } from '@/components/auth-layout';
 import { PageMeta } from '@/components/page-meta';
 import { Button } from '@/components/primitives/button';
 import { showErrorToast, showSuccessToast } from '@/components/primitives/sonner-helpers';
@@ -272,13 +272,7 @@ function CliAuthContent() {
   );
 }
 
-function CliAuthHeader({
-  isConnect,
-  callerDisplayName,
-}: {
-  isConnect: boolean;
-  callerDisplayName: string;
-}) {
+function CliAuthHeader({ isConnect, callerDisplayName }: { isConnect: boolean; callerDisplayName: string }) {
   if (isConnect) {
     return <ConnectBrandLogo />;
   }

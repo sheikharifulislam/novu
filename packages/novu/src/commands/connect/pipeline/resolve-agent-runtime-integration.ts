@@ -4,13 +4,13 @@ import {
   hasCompleteManagedCredentials,
   type ManagedCredentialFields,
 } from '@novu/shared';
+import type { ConnectApiClient } from '../api/client';
 import {
   createAgentRuntimeIntegration,
   type IntegrationRecord,
   listIntegrations,
   verifyManagedCredentials,
 } from '../api/integrations';
-import type { ConnectApiClient } from '../api/client';
 import { NovuApiError } from '../api/client';
 import type { AgentRuntimeChoice, ConnectCommandOptions } from '../types';
 import type { ConnectUI } from '../ui/ui';
@@ -81,8 +81,7 @@ export async function resolveAgentRuntimeIntegration(
 
   const fields = await collectAndVerifyManagedCredentials(client, ui, options, runtime, providerId);
 
-  const integrationName =
-    runtime === 'claude-aws' ? 'Novu Connect AWS Claude' : 'Novu Connect Anthropic';
+  const integrationName = runtime === 'claude-aws' ? 'Novu Connect AWS Claude' : 'Novu Connect Anthropic';
 
   const created = await createAgentRuntimeIntegration(client, {
     environmentId,
@@ -163,9 +162,7 @@ function hasByokCredentialFlags(options: ConnectCommandOptions, runtime: AgentRu
 
   if (runtime === 'claude-aws') {
     return Boolean(
-      options.awsClaudeApiKey?.trim() &&
-        options.awsClaudeRegion?.trim() &&
-        options.awsClaudeWorkspaceId?.trim()
+      options.awsClaudeApiKey?.trim() && options.awsClaudeRegion?.trim() && options.awsClaudeWorkspaceId?.trim()
     );
   }
 

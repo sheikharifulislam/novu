@@ -10,7 +10,7 @@ import {
   sendAgentWelcomeMessage,
 } from '../api/agents';
 import { type ConnectApiClient, createConnectApiClient, NovuApiError } from '../api/client';
-import { type IntegrationRecord, deleteIntegration } from '../api/integrations';
+import { deleteIntegration, type IntegrationRecord } from '../api/integrations';
 import { upsertSubscriber } from '../api/subscribers';
 import { buildConnectAgentDetailsUrl, channelDisplayName } from '../dashboard-urls';
 import type { AgentSummary, ChannelChoice, ConnectCommandOptions } from '../types';
@@ -18,10 +18,7 @@ import type { ConnectUI } from '../ui/ui';
 import { connectEmailForAgent } from './channels/email';
 import { connectSlackForAgent } from './channels/slack';
 import { connectTelegramForAgent } from './channels/telegram';
-import {
-  resolveAgentRuntimeIntegration,
-  resolveRuntimeFromOptions,
-} from './resolve-agent-runtime-integration';
+import { resolveAgentRuntimeIntegration, resolveRuntimeFromOptions } from './resolve-agent-runtime-integration';
 
 export interface ConnectPipelineInput {
   options: ConnectCommandOptions;
@@ -91,15 +88,7 @@ export async function runConnectPipeline(input: ConnectPipelineInput): Promise<C
         break;
       case 'slack': {
         const subscriberId = await ensureSubscriberForUser(client, auth);
-        const result = await connectSlackForAgent(
-          client,
-          agent,
-          ui,
-          options,
-          auth.environmentId,
-          subscriberId,
-          track
-        );
+        const result = await connectSlackForAgent(client, agent, ui, options, auth.environmentId, subscriberId, track);
         connectedIntegration = result.integration;
         channelConnected = result.connected;
         if (channelConnected) connectedChannel = 'slack';
@@ -107,14 +96,7 @@ export async function runConnectPipeline(input: ConnectPipelineInput): Promise<C
       }
       case 'telegram': {
         const subscriberId = await ensureSubscriberForUser(client, auth);
-        const result = await connectTelegramForAgent(
-          client,
-          agent,
-          ui,
-          auth.environmentId,
-          subscriberId,
-          track
-        );
+        const result = await connectTelegramForAgent(client, agent, ui, auth.environmentId, subscriberId, track);
         connectedIntegration = result.integration;
         channelConnected = result.connected;
         if (channelConnected) connectedChannel = 'telegram';
@@ -186,14 +168,13 @@ async function createAgentFlow(
   environmentId: string
 ): Promise<AgentSummary> {
   const runtime =
-    resolveRuntimeFromOptions(options) ??
-    (await ui.pickAgentRuntime({ preselected: options.runtime ?? 'demo' }));
+    resolveRuntimeFromOptions(options) ?? (await ui.pickAgentRuntime({ preselected: options.runtime ?? 'demo' }));
 
   ui.loadingIntegrations();
   const resolved = await resolveAgentRuntimeIntegration(client, ui, options, runtime, environmentId);
 
   const prompt = await ui.promptForDescription(options.prompt);
-  let generated = await generateAndPreviewAgent(client, ui, prompt.trim());
+  const generated = await generateAndPreviewAgent(client, ui, prompt.trim());
 
   ui.creatingAgent(generated.name);
 

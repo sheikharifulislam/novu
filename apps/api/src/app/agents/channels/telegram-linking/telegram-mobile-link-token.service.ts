@@ -254,10 +254,11 @@ export class TelegramMobileLinkTokenService {
     };
 
     try {
-      await this.cacheService.eval(RELEASE_ATOMIC_SCRIPT, [this.storageKey(token), this.usedKey(token)], [
-        JSON.stringify(entry),
-        remaining,
-      ]);
+      await this.cacheService.eval(
+        RELEASE_ATOMIC_SCRIPT,
+        [this.storageKey(token), this.usedKey(token)],
+        [JSON.stringify(entry), remaining]
+      );
     } catch (err) {
       this.logger.warn(
         { err, token, storageKey: this.storageKey(token), usedKey: this.usedKey(token) },

@@ -61,12 +61,7 @@ import { AgentRuntimeExceptionFilter } from './shared/agent-runtime-exception.fi
 import { USE_CASES } from './usecases';
 
 @Module({
-  imports: [
-    SharedModule,
-    AuthModule,
-    EventsModule,
-    ChannelEndpointsModule,
-  ],
+  imports: [SharedModule, AuthModule, EventsModule, ChannelEndpointsModule],
   controllers: [
     AgentsController,
     AgentIntegrationsController,

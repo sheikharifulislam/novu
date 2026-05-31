@@ -1,8 +1,8 @@
+import type { CliDeviceSessionPollResponse, CreateCliDeviceSessionResponse } from '@novu/shared';
 import open from 'open';
 import ora from 'ora';
-import type { CliDeviceSessionPollResponse, CreateCliDeviceSessionResponse } from '@novu/shared';
-import { requestApiJson } from '../../shared/novu-http';
 import type { CloudRegionEnum } from '../../dev/enums';
+import { requestApiJson } from '../../shared/novu-http';
 import { ResolvedAuth } from '../types';
 
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
