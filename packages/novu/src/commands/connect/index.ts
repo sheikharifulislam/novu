@@ -19,9 +19,7 @@ interface UiBundle {
 
 // Hide the import from TypeScript's CJS transform so we can dynamically pull
 // in the ESM Ink bundle at runtime without ts-node trying to require() it.
-const dynamicImport = new Function('specifier', 'return import(specifier)') as (
-  specifier: string
-) => Promise<unknown>;
+const dynamicImport = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<unknown>;
 
 async function loadInkUi(): Promise<UiBundle> {
   const bundlePath = path.join(__dirname, 'ui', 'index.mjs');
