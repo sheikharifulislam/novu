@@ -27,6 +27,7 @@ import {
   BreadcrumbSeparator,
 } from '../primitives/breadcrumb';
 import { Button } from '../primitives/button';
+import { BetaBadge } from '../primitives/beta-badge';
 import { Kbd } from '../primitives/kbd';
 import { AppRail } from './app-rail';
 import { useConnectBreadcrumbLeaf } from './use-connect-breadcrumb';
@@ -67,6 +68,26 @@ type ConnectBreadcrumbEntry = {
   icon?: ReactNode;
   to?: string;
 };
+
+function shouldShowConnectBreadcrumbBeta(
+  itemKey: string,
+  connectSection: ConnectSectionId,
+  isLast: boolean
+): boolean {
+  if (itemKey === 'root') {
+    return true;
+  }
+
+  if (connectSection !== 'agents') {
+    return false;
+  }
+
+  if (itemKey === 'section' || itemKey === 'leaf') {
+    return isLast;
+  }
+
+  return false;
+}
 
 export function DashboardShell({
   children,
@@ -132,6 +153,7 @@ export function DashboardShell({
             <BreadcrumbList>
               {connectBreadcrumbItems.map((item, index) => {
                 const isLast = index === connectLastIndex;
+                const showBeta = shouldShowConnectBreadcrumbBeta(item.key, connectSection, isLast);
 
                 return (
                   <Fragment key={item.key}>
@@ -141,11 +163,13 @@ export function DashboardShell({
                         <BreadcrumbPage className="flex min-w-0 items-center gap-1.5">
                           {item.icon}
                           <span className="truncate">{item.label}</span>
+                          {showBeta ? <BetaBadge className="shrink-0" /> : null}
                         </BreadcrumbPage>
                       ) : (
                         <BreadcrumbLink to={item.to ?? '#'} className="flex min-w-0 items-center gap-1.5 text-text-sub">
                           {item.icon}
                           <span className="truncate">{item.label}</span>
+                          {showBeta ? <BetaBadge className="shrink-0" /> : null}
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
