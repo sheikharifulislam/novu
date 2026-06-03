@@ -15,6 +15,9 @@ import { AgentConversationService } from '../conversation/agent-conversation.ser
 import { ChatInstanceRegistry } from '../ingress/chat-instance.registry';
 import type { ChatSdkFile, ChatSdkReplyContent } from './file-materializer.service';
 import { FileMaterializer } from './file-materializer.service';
+import { renderPlanModelAsMarkdown } from './plan-model-to-markdown';
+import type { PlanPhase } from './plan-phase';
+import { resolvePlanDeliveryMode } from './plan-live-delivery';
 import {
   editSlackNativeBlocks,
   getSlackApiErrorCode,
@@ -372,20 +375,25 @@ export class OutboundGateway {
     integrationIdentifier: string,
     platform: string,
     platformThreadId: string,
-    model: PlanModel
+    model: PlanModel,
+    phase: PlanPhase
   ): Promise<SentMessageInfo | null> {
-    const config = await this.agentConfigResolver.resolve(agentId, integrationIdentifier);
-    const instanceKey = `${agentId}:${integrationIdentifier}`;
-    const chat = await this.registry.getOrCreate(instanceKey, agentId, config.platform, config);
+    const adapter = await this.resolvePlanAdapter(agentId, integrationIdentifier, platform);
+    const mode = resolvePlanDeliveryMode(platform, adapter);
 
-    const adapter = chat.getAdapter(platform);
-    if (typeof adapter.postObject !== 'function') {
+    if (!mode) {
       return null;
     }
 
-    const sent = await adapter.postObject(platformThreadId, 'plan', model).catch(toDeliveryError);
+    if (mode === 'native') {
+      const sent = await adapter.postObject!(platformThreadId, 'plan', model).catch(toDeliveryError);
 
-    return { messageId: sent.id, platformThreadId: sent.threadId };
+      return { messageId: sent.id, platformThreadId: sent.threadId };
+    }
+
+    const markdown = renderPlanModelAsMarkdown(model, phase);
+
+    return this.postToConversation(agentId, integrationIdentifier, platform, platformThreadId, { markdown });
   }
 
   async editPlanObject(
@@ -394,18 +402,40 @@ export class OutboundGateway {
     platform: string,
     platformThreadId: string,
     platformMessageId: string,
-    model: PlanModel
+    model: PlanModel,
+    phase: PlanPhase
   ): Promise<void> {
+    const adapter = await this.resolvePlanAdapter(agentId, integrationIdentifier, platform);
+    const mode = resolvePlanDeliveryMode(platform, adapter);
+
+    if (!mode) {
+      return;
+    }
+
+    if (mode === 'native') {
+      await adapter.editObject!(platformThreadId, platformMessageId, 'plan', model).catch(toDeliveryError);
+
+      return;
+    }
+
+    const markdown = renderPlanModelAsMarkdown(model, phase);
+
+    await this.editInConversation(
+      agentId,
+      integrationIdentifier,
+      platform,
+      platformThreadId,
+      platformMessageId,
+      { markdown }
+    );
+  }
+
+  private async resolvePlanAdapter(agentId: string, integrationIdentifier: string, platform: string) {
     const config = await this.agentConfigResolver.resolve(agentId, integrationIdentifier);
     const instanceKey = `${agentId}:${integrationIdentifier}`;
     const chat = await this.registry.getOrCreate(instanceKey, agentId, config.platform, config);
 
-    const adapter = chat.getAdapter(platform);
-    if (typeof adapter.editObject !== 'function') {
-      return;
-    }
-
-    await adapter.editObject(platformThreadId, platformMessageId, 'plan', model).catch(toDeliveryError);
+    return chat.getAdapter(platform);
   }
 
   async reactToMessage(
