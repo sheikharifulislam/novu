@@ -12,7 +12,7 @@ import { deleteIntegration, type IntegrationRecord } from '../api/integrations';
 import { upsertSubscriber } from '../api/subscribers';
 import { type ResolvedConnectAuth, resolveConnectAuth } from '../auth/resolve-connect-auth';
 import { type ConnectSession, upgradeKeylessSessionToDashboardAuth } from '../auth/upgrade-keyless-session';
-import { buildConnectAgentDetailsUrl, channelDisplayName } from '../dashboard-urls';
+import { buildConnectAgentDetailsUrl, buildConnectClaimUrl, channelDisplayName } from '../dashboard-urls';
 import { ConnectChannelBackError } from '../errors';
 import { shouldUpgradeFromKeylessGenerateLimit } from '../keyless-limit-errors';
 import type { AgentSummary, ChannelChoice, ConnectCommandOptions } from '../types';
@@ -208,15 +208,30 @@ export async function runConnectPipeline(input: ConnectPipelineInput): Promise<C
       }
     }
 
+    let claimToken: string | null = null;
+
     if (channelConnected && connectedIntegration) {
       ui.sendingWelcome();
       try {
-        await sendAgentWelcomeMessage(session.client, agent.identifier, connectedIntegration.identifier);
+        const welcome = await sendAgentWelcomeMessage(
+          session.client,
+          agent.identifier,
+          connectedIntegration.identifier
+        );
+        claimToken = welcome.claimToken ?? null;
         track(CONNECT_EVENTS.WELCOME_SENT, { agent: agent.identifier, ...sessionProps });
       } catch (err) {
         ui.failure(`Could not send the welcome message: ${describeError(err)}`);
       }
     }
+
+    const claimUrl =
+      session.auth.isKeyless && claimToken
+        ? buildConnectClaimUrl({
+            connectDashboardUrl: options.connectDashboardUrl.replace(/\/$/, ''),
+            token: claimToken,
+          })
+        : null;
 
     ui.success({
       agent,
@@ -225,6 +240,8 @@ export async function runConnectPipeline(input: ConnectPipelineInput): Promise<C
       environmentSlug: session.auth.environmentSlug ?? null,
       connectedChannel,
       dashboardRedirectChannel,
+      isKeyless: session.auth.isKeyless,
+      claimUrl,
     });
 
     track(CONNECT_EVENTS.COMPLETED, {

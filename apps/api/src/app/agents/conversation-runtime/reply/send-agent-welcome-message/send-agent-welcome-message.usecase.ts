@@ -11,13 +11,9 @@ import { buildConnectSubscriberId } from '@novu/shared';
 import type { CardElement } from 'chat';
 import { ConnectClaimTokenService } from '../../../../connect/services/connect-claim-token.service';
 import { isKeylessOrganization } from '../../../../keyless/keyless-organization.helpers';
-import {
-  buildConnectClaimUrl,
-  buildKeylessWelcomeCard,
-  toReplyCard,
-} from '../../../../keyless/keyless-signup.helpers';
-import { getWelcomeText } from '../../../shared/util/agent-welcome-text';
+import { buildConnectClaimUrl, buildKeylessWelcomeCard, toReplyCard } from '../../../../keyless/keyless-signup.helpers';
 import { AgentPlatformEnum } from '../../../shared/enums/agent-platform.enum';
+import { getWelcomeText } from '../../../shared/util/agent-welcome-text';
 import { PLATFORM_ENDPOINT_CONFIG } from '../../../shared/util/platform-endpoint-config';
 import { resolveAgentPlatform } from '../../../shared/util/provider-to-platform';
 import { AgentConversationService, getConversationTitle } from '../../conversation/agent-conversation.service';
@@ -41,7 +37,9 @@ export class SendAgentWelcomeMessage {
   }
 
   @InstrumentUsecase()
-  async execute(command: SendAgentWelcomeMessageCommand): Promise<{ sent: boolean; conversationId?: string }> {
+  async execute(
+    command: SendAgentWelcomeMessageCommand
+  ): Promise<{ sent: boolean; conversationId?: string; claimToken?: string }> {
     if (command.conversationId) {
       return this.sendBridgeConnectedMessage(command as SendAgentWelcomeMessageCommand & { conversationId: string });
     }
@@ -51,7 +49,7 @@ export class SendAgentWelcomeMessage {
 
   private async sendWelcomeMessage(
     command: SendAgentWelcomeMessageCommand
-  ): Promise<{ sent: boolean; conversationId?: string }> {
+  ): Promise<{ sent: boolean; conversationId?: string; claimToken?: string }> {
     const agent = await this.agentRepository.findOne(
       {
         identifier: command.agentIdentifier,
@@ -101,8 +99,8 @@ export class SendAgentWelcomeMessage {
     }
 
     try {
-      const keylessWelcomeCard = await this.resolveKeylessWelcomeCard(command, welcomeText);
-      const welcomeReplyCard = keylessWelcomeCard ? toReplyCard(keylessWelcomeCard) : undefined;
+      const keylessWelcome = await this.resolveKeylessWelcomeCard(command, welcomeText);
+      const welcomeReplyCard = keylessWelcome ? toReplyCard(keylessWelcome.card) : undefined;
       const welcomeContent = welcomeReplyCard ? { card: welcomeReplyCard } : { markdown: welcomeText };
       const sent = await this.outboundGateway.sendDirectMessage(
         agent._id,
@@ -147,7 +145,7 @@ export class SendAgentWelcomeMessage {
         platform,
       });
 
-      return { sent: true, conversationId: conversation._id };
+      return { sent: true, conversationId: conversation._id, claimToken: keylessWelcome?.claimToken };
     } catch (err) {
       this.logger.warn(err, `Failed to send welcome message for agent "${command.agentIdentifier}"`);
 
@@ -239,7 +237,7 @@ export class SendAgentWelcomeMessage {
   private async resolveKeylessWelcomeCard(
     command: SendAgentWelcomeMessageCommand,
     welcomeText: string
-  ): Promise<CardElement | null> {
+  ): Promise<{ card: CardElement; claimToken: string } | null> {
     if (!isKeylessOrganization(command.organizationId)) {
       return null;
     }
@@ -251,7 +249,7 @@ export class SendAgentWelcomeMessage {
       });
       const claimUrl = buildConnectClaimUrl(token);
 
-      return buildKeylessWelcomeCard(welcomeText, claimUrl);
+      return { card: buildKeylessWelcomeCard(welcomeText, claimUrl), claimToken: token };
     } catch (err) {
       this.logger.warn(
         err,

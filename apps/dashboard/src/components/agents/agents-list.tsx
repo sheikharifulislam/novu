@@ -20,7 +20,6 @@ import {
 } from '@/api/agents';
 import { NovuApiError } from '@/api/api.client';
 import { AgentPreviewSkeleton } from '@/components/agents/agent-preview-skeleton';
-import { AgentCreationLimitDialog, AgentLimitUpgradeDialog } from '@/components/agents/plan-limit-upgrade-dialog';
 import { AgentsEmptyTeaser } from '@/components/agents/agents-empty-teaser';
 import { AgentsPlanLimitBanner } from '@/components/agents/agents-plan-limit-banner';
 import { AgentsProductionEmptyState } from '@/components/agents/agents-production-empty-state';
@@ -32,6 +31,7 @@ import {
 import { CreateAgentDialog, CreateAgentForm } from '@/components/agents/create-agent-dialog';
 import { type AgentTemplate, findAgentTemplateById } from '@/components/agents/create-agent-fields';
 import { DeleteAgentDialog } from '@/components/agents/delete-agent-dialog';
+import { AgentCreationLimitDialog, AgentLimitUpgradeDialog } from '@/components/agents/plan-limit-upgrade-dialog';
 import { isDemoIntegration } from '@/components/integrations/components/utils/helpers';
 import { ListNoResults } from '@/components/list-no-results';
 import { Button } from '@/components/primitives/button';

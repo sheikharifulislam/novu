@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { getWelcomeText } from '../agents/shared/util/agent-welcome-text';
 import { AgentPlatformEnum } from '../agents/shared/enums/agent-platform.enum';
+import { getWelcomeText } from '../agents/shared/util/agent-welcome-text';
 import {
   buildConnectClaimUrl,
   buildKeylessSignupCard,
@@ -51,9 +51,7 @@ describe('keyless-signup.helpers', () => {
     process.env.DASHBOARD_URL = 'https://dashboard.example.com';
     delete process.env.FRONT_BASE_URL;
 
-    expect(buildConnectClaimUrl('abc+token')).to.equal(
-      'https://dashboard.example.com/connect/claim?token=abc%2Btoken'
-    );
+    expect(buildConnectClaimUrl('abc+token')).to.equal('https://dashboard.example.com/connect/claim?token=abc%2Btoken');
   });
 
   it('buildKeylessWelcomeCard includes welcome text and a primary signup button', () => {
