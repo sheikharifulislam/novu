@@ -2,11 +2,13 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "luma",
   "name": "Novu",
+  "description": "The open-source notification infrastructure for agents and products. Send, receive, and track notifications across channels.",
   "colors": {
-    "primary": "#D1006E",
-    "light": "#FF4CE1",
-    "dark": "#FF4CE1"
+    "primary": "#0e121b",
+    "light": "#FFFFFF",
+    "dark": "#FFFFFF"
   },
+  "background": {},
   "favicon": "/favicon.svg",
   "icons": {
     "library": "lucide"
@@ -17,6 +19,9 @@
     "href": "https://novu.co"
   },
   "navigation": {
+    "global": {
+      "anchors": []
+    },
     "tabs": [
       {
         "tab": "Platform",
@@ -815,6 +820,71 @@
       "x": "https://x.com/novuhq",
       "github": "https://github.com/novuhq/novu",
       "linkedin": "https://linkedin.com/company/novuhq"
+    },
+    "links": [
+      {
+        "header": "Comparison",
+        "items": [
+          {
+            "label": "Novu vs Courier",
+            "href": "https://novu.co/comparison/courier/"
+          },
+          {
+            "label": "Novu vs Knock",
+            "href": "https://novu.co/comparison/knock/"
+          },
+          {
+            "label": "Novu vs MagicBell",
+            "href": "https://novu.co/comparison/magicbell/"
+          },
+          {
+            "label": "Novu vs SuprSend",
+            "href": "https://novu.co/comparison/suprsend/"
+          },
+          {
+            "label": "Novu vs In-house",
+            "href": "https://novu.co/comparison/building-in-house/"
+          }
+        ]
+      },
+      {
+        "header": "Resources",
+        "items": [
+          {
+            "label": "Contact Support",
+            "href": "mailto:support@novu.co"
+          },
+          {
+            "label": "Changelog",
+            "href": "https://go.novu.co/changelog?utm_source=docs_footer"
+          },
+          {
+            "label": "Roadmap",
+            "href": "https://roadmap.novu.co/roadmap"
+          },
+          {
+            "label": "Contact Sales",
+            "href": "https://novu.co/contact-us/"
+          },
+          {
+            "label": "Read llms.txt",
+            "href": "/llms.txt"
+          }
+        ]
+      }
+    ]
+  },
+  "api": {
+    "examples": {
+      "prefill": true
+    }
+  },
+  "integrations": {
+    "gtm": {
+      "tagId": "GTM-KXMC4XP2"
+    },
+    "plausible": {
+      "domain": "docs.novu.co"
     }
   },
   "redirects": [
