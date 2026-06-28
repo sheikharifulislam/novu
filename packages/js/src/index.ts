@@ -74,6 +74,7 @@ export {
   isSameFilter,
   normalizeTagGroups,
 } from './utils/notification-utils';
+export { NOTIFICATION_COUNT_SYNC_EVENTS } from './notifications/count-sync-events';
 export { TelegramSubscriberLink } from './telegram';
 export type {
   TelegramSubscriberLinkOptions,
