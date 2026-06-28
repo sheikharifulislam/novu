@@ -733,6 +733,10 @@ export class AgentInboundHandler implements OnModuleInit {
           })
         );
 
+        // `/start` only links the chat to the subscriber; Layer-1 onboarding completes on
+        // the next genuine inbound message (handled in `handle()`), matching Slack's
+        // "install ≠ connected" split and the dashboard "Send a test message" step.
+
         const reply = linkResult.created ? SUBSCRIBER_LINK_SUCCESS_REPLY : SUBSCRIBER_LINK_DUPLICATE_REPLY;
         await this.safePostInboundReply(thread, reply, agentId, message);
       } catch (err) {
